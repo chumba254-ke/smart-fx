@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ApexTrader Pro Platform</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-base: #0b0e14;
+            --bg-surface: #151921;
+            --bg-card: #1e232d;
+            --border-color: #2a2e39;
+            --text-main: #d1d4dc;
+            --text-muted: #787b86;
+            --accent-green: #0ecb81;
+            --accent-red: #f6465d;
+            --accent-blue: #2962ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            color: var(--text-main);
+        }
+
+        body {
+            background-color: var(--bg-base);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            font-size: 13px;
+        }
+
+        /* Top Header */
+        header {
+            background-color: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo-icon { color: var(--accent-blue); }
+
+        .ticker-bar {
+            display: flex;
+            gap: 25px;
+        }
+
+        .ticker-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ticker-label {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .ticker-val { font-weight: 600; }
+        .up { color: var(--accent-green); }
+        .down { color: var(--accent-red); }
+
+        /* Main Dashboard Grid */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 260px 1fr 280px 300px;
+            grid-template-rows: 1fr 220px;
+            gap: 1px;
+            background-color: var(--border-color);
+            flex: 1;
+            height: calc(100vh - 53px);
+        }
+
+        .panel {
+            background-color: var(--bg-surface);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            padding: 10px 15px;
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* 1. Watchlist Panel */
+        .watchlist { grid-area: 1 / 1 / 3 / 2; }
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+        .list-item:hover { background-color: var(--bg-card); }
+
+        /* 2. Main Chart Area */
+        .chart-area { 
+            grid-area: 1 / 2 / 2 / 3; 
+            padding: 15px;
+            position: relative;
+        }
+
+        /* 3. Order Book Panel */
+        .order-book { grid-area: 1 / 3 / 2 / 4; }
+        .ob-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: monospace;
+        }
+        .ob-table th, .ob-table td {
+            padding: 4px 12px;
+            text-align: right;
+        }
+        .ob-table th { color: var(--text-muted); font-size: 11px; }
+
+        /* 4. Order Execution Form */
+        .trade-form { grid-area: 1 / 4 / 3 / 5; padding: 15px; }
+        .tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .tab.active-buy { border-bottom: 2px solid var(--accent-green); color: var(--accent-green); }
+        .tab.active-sell { border-bottom: 2px solid var(--accent-red); color: var(--accent-red); }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-base);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: #fff;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn-buy { background-color: var(--accent-green); color: #fff; }
+        .btn-sell { background-color: var(--accent-red); color: #fff; }
+
+        /* 5. Bottom Panel: Open Orders & History */
+        .bottom-panel { 
+            grid-area: 2 / 2 / 3 / 4; 
+            overflow-y: auto;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        .data-table th, .data-table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .data-table th { color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="logo"><span class="logo-icon">▲</span> APEX TRADER</div>
+        <div class="ticker-bar">
+            <div class="ticker-item">
+                <span class="ticker-label">BTC/USD</span>
+                <span class="ticker-val up">$64,230.50 (+3.42%)</span>
+            </div>
+            <div class="ticker-item">
+                <span class="ticker-label">24h High</span>
+                <span class="ticker-val">$65,100.00</span>
+            </div>
+            <div class="ticker-item">
+                <span class="ticker-label">24h Low</span>
+                <span class="ticker-val">$62,890.00</span>
+            </div>
+            <div class="ticker-item">
+                <span class="ticker-label">24h Volume</span>
+                <span class="ticker-val">18,421 BTC</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="dashboard-container">
+        
+        <!-- Watchlist -->
+        <div class="panel watchlist">
+            <div class="panel-header">Markets</div>
+            <div class="list-item">
+                <div><strong>BTC/USD</strong><br><small style="color:var(--text-muted)">Bitcoin</small></div>
+                <div style="text-align:right">$64,230.50<br><small class="up">+3.42%</small></div>
+            </div>
+            <div class="list-item">
+                <div><strong>ETH/USD</strong><br><small style="color:var(--text-muted)">Ethereum</small></div>
+                <div style="text-align:right">$3,450.20<br><small class="down">-0.85%</small></div>
+            </div>
+            <div class="list-item">
+                <div><strong>SOL/USD</strong><br><small style="color:var(--text-muted)">Solana</small></div>
+                <div style="text-align:right">$142.10<br><small class="up">+6.12%</small></div>
+            </div>
+            <div class="list-item">
+                <div><strong>NVDA</strong><br><small style="color:var(--text-muted)">NVIDIA Corp</small></div>
+                <div style="text-align:right">$128.50<br><small class="up">+1.15%</small></div>
+            </div>
+        </div>
+
+        <!-- Interactive Chart -->
+        <div class="panel chart-area">
+            <div class="panel-header" style="background:transparent; padding:0 0 10px 0;">BTC/USD - 1m Realtime Chart</div>
+            <canvas id="tradingChart"></canvas>
+        </div>
+
+        <!-- Order Book -->
+        <div class="panel order-book">
+            <div class="panel-header">Order Book</div>
+            <table class="ob-table">
+                <thead>
+                    <tr><th>Price (USD)</th><th>Size</th></tr>
+                </thead>
+                <tbody id="asks" class="down">
+                    <!-- Dynamic Asks (Sells) -->
+                </tbody>
+            </table>
+            <div style="padding: 8px 12px; font-weight: bold; background: var(--bg-card);" class="up">$64,230.50 ↑</div>
+            <table class="ob-table">
+                <tbody id="bids" class="up">
+                    <!-- Dynamic Bids (Buys) -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Trade Execution Panel -->
+        <div class="panel trade-form">
+            <div class="tabs">
+                <div class="tab active-buy" id="buyTab" onclick="setSide('buy')">Buy</div>
+                <div class="tab" id="sellTab" onclick="setSide('sell')">Sell</div>
+            </div>
+            <div class="input-group">
+                <label>Order Type</label>
+                <input type="text" value="Limit Order" readonly style="cursor: not-allowed;">
+            </div>
+            <div class="input-group">
+                <label>Price (USD)</label>
+                <input type="number" id="orderPrice" value="64230.50">
+            </div>
+            <div class="input-group">
+                <label>Amount (BTC)</label>
+                <input type="number" id="orderAmount" value="0.50" step="0.1">
+            </div>
+            <div style="margin-bottom: 15px; display: flex; justify-content: space-between;">
+                <span style="color:var(--text-muted)">Total Value:</span>
+                <span id="totalVal" style="font-weight: bold;">$32,115.25</span>
+            </div>
+            <button class="btn btn-buy" id="actionBtn" onclick="executeOrder()">Buy BTC</button>
+        </div>
+
+        <!-- Bottom Panel: Position/Orders -->
+        <div class="panel bottom-panel">
+            <div class="panel-header">Trade History & Positions</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Type</th>
+                        <th>Price</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="orderHistory">
+                    <tr>
+                        <td>09:23:45</td>
+                        <td class="up">BUY</td>
+                        <td>$64,150.00</td>
+                        <td>0.25 BTC</td>
+                        <td>Filled</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // 1. Chart Setup using Chart.js
+        const ctx = document.getElementById('tradingChart').getContext('2d');
+        let initialData = [64100, 64120, 64115, 64180, 64160, 64200, 64230];
+        let labels = ['09:18', '09:19', '09:20', '09:21', '09:22', '09:23', '09:24'];
+
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'BTC/USD',
+                    data: initialData,
+                    borderColor: '#0ecb81',
+                    backgroundColor: 'rgba(14, 203, 129, 0.05)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.2,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { color: '#2a2e39' } },
+                    y: { grid: { color: '#2a2e39' } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // Simulating Real-time Chart Data Updates
+        setInterval(() => {
+            const lastPrice = initialData[initialData.length - 1];
+            const change = (Math.random() - 0.49) * 20;
+            const newPrice = +(lastPrice + change).toFixed(2);
+            
+            initialData.push(newPrice);
+            const now = new Date();
+            labels.push(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`);
+            
+            if (initialData.length > 20) {
+                initialData.shift();
+                labels.shift();
+            }
+            
+            chart.data.datasets[0].borderColor = newPrice >= lastPrice ? '#0ecb81' : '#f6465d';
+            chart.update();
+            renderOrderBook(newPrice);
+        }, 2000);
+
+        // 2. Dynamic Order Book Simulation
+        function renderOrderBook(currentPrice) {
+            const asksEl = document.getElementById('asks');
+            const bidsEl = document.getElementById('bids');
+            
+            asksEl.innerHTML = '';
+            bidsEl.innerHTML = '';
+
+            for (let i = 4; i >= 1; i--) {
+                const askPrice = (currentPrice + (i * 2.5)).toFixed(2);
+                const size = (Math.random() * 0.8 + 0.1).toFixed(3);
+                asksEl.innerHTML += `<tr><td>${askPrice}</td><td>${size}</td></tr>`;
+            }
+
+            for (let i = 1; i <= 4; i++) {
+                const bidPrice = (currentPrice - (i * 2.5)).toFixed(2);
+                const size = (Math.random() * 0.8 + 0.1).toFixed(3);
+                bidsEl.innerHTML += `<tr><td>${bidPrice}</td><td>${size}</td></tr>`;
+            }
+        }
+        renderOrderBook(64230.50);
+
+        // 3. Trade Form Interaction
+        let currentSide = 'buy';
+        
+        function setSide(side) {
+            currentSide = side;
+            const buyTab = document.getElementById('buyTab');
+            const sellTab = document.getElementById('sellTab');
+            const btn = document.getElementById('actionBtn');
+
+            if(side === 'buy') {
+                buyTab.className = 'tab active-buy';
+                sellTab.className = 'tab';
+                btn.className = 'btn btn-buy';
+                btn.innerText = 'Buy BTC';
+            } else {
+                sellTab.className = 'tab active-sell';
+                buyTab.className = 'tab';
+                btn.className = 'btn btn-sell';
+                btn.innerText = 'Sell BTC';
+            }
+        }
+
+        const priceInput = document.getElementById('orderPrice');
+        const amountInput = document.getElementById('orderAmount');
+        const totalVal = document.getElementById('totalVal');
+
+        function updateTotal() {
+            const total = (parseFloat(priceInput.value || 0) * parseFloat(amountInput.value || 0)).toFixed(2);
+            totalVal.innerText = `$${total}`;
+        }
+        priceInput.addEventListener('input', updateTotal);
+        amountInput.addEventListener('input', updateTotal);
+
+        // 4. Order Execution Handler
+        function executeOrder() {
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+            const history = document.getElementById('orderHistory');
+            
+            const newRow = `
+                <tr>
+                    <td>${timeStr}</td>
+                    <td class="${currentSide === 'buy' ? 'up' : 'down'}">${currentSide.toUpperCase()}</td>
+                    <td>$${parseFloat(priceInput.value).toFixed(2)}</td>
+                    <td>${amountInput.value} BTC</td>
+                    <td>Filled</td>
+                </tr>
+            `;
+            history.insertAdjacentHTML('afterbegin', newRow);
+        }
+    </script>
+</body>
+</html>
